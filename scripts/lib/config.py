@@ -32,6 +32,12 @@ SPEAKER_IDS = {
 
 load_dotenv(ROOT_DIR / ".env")
 
+# VOICEVOX 音量（volumeScale、デフォルト 1.0）
+SPEAKER_VOLUME = {
+    "姉": float(os.getenv("SPEAKER_VOLUME_ANE", "1.25")),
+    "妹": float(os.getenv("SPEAKER_VOLUME_IMOUTO", "1.0")),
+}
+
 # GitHub Actions では Gemini、ローカルでは Cursor をデフォルト使用
 _default_provider = "gemini" if os.getenv("GITHUB_ACTIONS") == "true" else "cursor"
 SCRIPT_PROVIDER = os.getenv("SCRIPT_PROVIDER", _default_provider).lower()

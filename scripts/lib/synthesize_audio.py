@@ -12,7 +12,7 @@ from typing import Any
 
 import requests
 
-from .config import AUDIO_PATH, SPEAKER_IDS, VOICEVOX_URL
+from .config import AUDIO_PATH, SPEAKER_IDS, SPEAKER_VOLUME, VOICEVOX_URL
 
 
 def _check_voicevox() -> None:
@@ -27,7 +27,7 @@ def _check_voicevox() -> None:
         ) from exc
 
 
-def _synthesize_line(text: str, speaker_id: int) -> bytes:
+def _synthesize_line(text: str, speaker_id: int, volume_scale: float = 1.0) -> bytes:
     query_response = requests.post(
         f"{VOICEVOX_URL}/audio_query",
         params={"text": text, "speaker": speaker_id},
@@ -35,10 +35,14 @@ def _synthesize_line(text: str, speaker_id: int) -> bytes:
     )
     query_response.raise_for_status()
 
+    query = query_response.json()
+    if volume_scale != 1.0:
+        query["volumeScale"] = volume_scale
+
     synthesis_response = requests.post(
         f"{VOICEVOX_URL}/synthesis",
         params={"speaker": speaker_id},
-        data=query_response.content,
+        data=json.dumps(query),
         headers={"Content-Type": "application/json"},
         timeout=60,
     )
@@ -120,8 +124,9 @@ def synthesize_audio(script: dict[str, Any], output_path: Path = AUDIO_PATH) -> 
         if speaker_id is None:
             raise RuntimeError(f"未知の話者です: {speaker}（姉 or 妹 を指定してください）")
 
+        volume = SPEAKER_VOLUME.get(speaker, 1.0)
         print(f"  合成中: [{speaker}] {text[:40]}…")
-        wav_chunks.append(_synthesize_line(text, speaker_id))
+        wav_chunks.append(_synthesize_line(text, speaker_id, volume))
 
     wav_data = _concat_wav(wav_chunks)
     duration_sec = int(_get_wav_duration(wav_data))
