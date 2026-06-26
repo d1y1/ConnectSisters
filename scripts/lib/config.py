@@ -31,6 +31,10 @@ SPEAKER_IDS = {
 
 load_dotenv(ROOT_DIR / ".env")
 
+# GitHub Actions では Gemini、ローカルでは Cursor をデフォルト使用
+_default_provider = "gemini" if os.getenv("GITHUB_ACTIONS") == "true" else "cursor"
+SCRIPT_PROVIDER = os.getenv("SCRIPT_PROVIDER", _default_provider).lower()
+
 CURSOR_API_KEY = os.getenv("CURSOR_API_KEY", "")
 CURSOR_MODEL = os.getenv("CURSOR_MODEL", "composer-2")
 CURSOR_MODEL_FAST = os.getenv("CURSOR_MODEL_FAST", "false").lower() in (
@@ -41,6 +45,17 @@ CURSOR_MODEL_FAST = os.getenv("CURSOR_MODEL_FAST", "false").lower() in (
 CURSOR_FALLBACK_MODELS = [
     m.strip()
     for m in os.getenv("CURSOR_FALLBACK_MODELS", "").split(",")
+    if m.strip()
+]
+
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
+GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-flash-lite")
+GEMINI_FALLBACK_MODELS = [
+    m.strip()
+    for m in os.getenv(
+        "GEMINI_FALLBACK_MODELS",
+        "gemini-2.5-flash,gemini-flash-lite-latest",
+    ).split(",")
     if m.strip()
 ]
 VOICEVOX_URL = os.getenv("VOICEVOX_URL", "http://127.0.0.1:50021")

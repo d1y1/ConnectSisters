@@ -84,7 +84,11 @@ output/           # 中間生成物（gitignore）
 1. このリポジトリを GitHub に push する
 2. リポジトリの **Settings → Pages → Build and deployment**
    - **Source**: `GitHub Actions` を選択
-3. **Settings → Secrets and variables → Actions** に `CURSOR_API_KEY` を登録（台本自動生成用）
+3. **Settings → Actions → General → Workflow permissions**
+   - **Read and write permissions** を選択して Save
+4. **Settings → Secrets and variables → Actions** に以下を登録:
+   - `GEMINI_API_KEY` … 台本自動生成用（[Google AI Studio](https://aistudio.google.com/apikey)）
+   - `CURSOR_API_KEY` … ローカル用（Actions では不要）
 
 ### 公開 URL
 
@@ -106,6 +110,15 @@ https://<ユーザー名>.github.io/ConnectSisters/
 ```
 
 `public/` 以下が変わると push のたびに自動デプロイされます。
+
+### トラブルシューティング
+
+| 症状 | 対処 |
+|------|------|
+| Deploy GitHub Pages が失敗 | Settings → Actions → Workflow permissions を **Read and write** にする |
+| Generate Episode Script が失敗 | `GEMINI_API_KEY` が Secrets に登録されているか確認 |
+| サイトが 404 | Deploy ワークフローが成功するまで 2〜3 分待つ |
+| push が HTTP 400 で失敗 | `git -c http.postBuffer=524288000 push origin main` を試す |
 
 ### MP3 推奨
 

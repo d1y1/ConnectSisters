@@ -1,9 +1,8 @@
-"""Cursor APIで掛け合い台本を生成する."""
+"""Cursor API / Gemini API で掛け合い台本を生成する."""
 
 from __future__ import annotations
 
 import json
-import re
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -23,41 +22,15 @@ from .config import (
     CURSOR_FALLBACK_MODELS,
     CURSOR_MODEL,
     CURSOR_MODEL_FAST,
-    PROMPT_PATH,
     ROOT_DIR,
+    SCRIPT_PROVIDER,
 )
-
-
-def _load_system_prompt() -> str:
-    return PROMPT_PATH.read_text(encoding="utf-8")
-
-
-def _build_user_prompt(articles: list[dict[str, Any]]) -> str:
-    lines = ["以下のニュースをもとに、ラジオ台本を作成してください。\n"]
-    for i, article in enumerate(articles, start=1):
-        lines.append(f"## ニュース{i}")
-        lines.append(f"- タイトル: {article['title']}")
-        lines.append(f"- 要約: {article['summary']}")
-        lines.append(f"- 出典: {article['source']}")
-        lines.append(f"- URL: {article['url']}\n")
-    return "\n".join(lines)
+from .generate_script_gemini import generate_script_with_gemini
+from .script_common import build_user_prompt, load_system_prompt, parse_script_json
 
 
 def _build_prompt(system_prompt: str, user_prompt: str) -> str:
     return f"{system_prompt}\n\n---\n\n{user_prompt}"
-
-
-def _extract_json(text: str) -> dict[str, Any]:
-    text = text.strip()
-    fence_match = re.search(r"```(?:json)?\s*(\{.*\})\s*```", text, re.DOTALL)
-    if fence_match:
-        text = fence_match.group(1)
-    else:
-        start = text.find("{")
-        end = text.rfind("}")
-        if start != -1 and end != -1 and end > start:
-            text = text[start : end + 1]
-    return json.loads(text)
 
 
 def _build_model_selection(model_id: str) -> ModelSelection:
@@ -82,14 +55,14 @@ def _call_cursor(model_id: str, prompt: str) -> str:
     return result.result or ""
 
 
-def generate_script(articles: list[dict[str, Any]]) -> dict[str, Any]:
+def _generate_with_cursor(articles: list[dict[str, Any]]) -> str:
     if not CURSOR_API_KEY:
         raise RuntimeError(
             "CURSOR_API_KEY が設定されていません。.env ファイルを作成してください。"
         )
 
-    system_prompt = _load_system_prompt()
-    user_prompt = _build_user_prompt(articles)
+    system_prompt = load_system_prompt()
+    user_prompt = build_user_prompt(articles)
     prompt = _build_prompt(system_prompt, user_prompt)
 
     models_to_try: list[str] = []
@@ -98,13 +71,11 @@ def generate_script(articles: list[dict[str, Any]]) -> dict[str, Any]:
             models_to_try.append(model)
 
     last_error: Exception | None = None
-    raw_text = ""
     for model in models_to_try:
         try:
             fast_label = "fast" if CURSOR_MODEL_FAST else "standard"
             print(f"   モデル: {model} ({fast_label})")
-            raw_text = _call_cursor(model, prompt)
-            break
+            return _call_cursor(model, prompt)
         except RateLimitError as exc:
             last_error = exc
             print(f"   {model} はレート制限のためスキップ")
@@ -120,18 +91,19 @@ def generate_script(articles: list[dict[str, Any]]) -> dict[str, Any]:
             print(f"   {model} は実行エラーのためスキップ: {exc}")
             continue
 
-    if not raw_text:
-        raise RuntimeError(
-            "すべてのモデルで台本生成に失敗しました。"
-            " Cursor Dashboard で API キーと利用状況を確認するか、しばらく待ってから再実行してください。"
-        ) from last_error
+    raise RuntimeError(
+        "すべてのモデルで台本生成に失敗しました。"
+        " Cursor Dashboard で API キーと利用状況を確認するか、しばらく待ってから再実行してください。"
+    ) from last_error
 
-    script = _extract_json(raw_text)
 
-    required_keys = {"title", "lines"}
-    if not required_keys.issubset(script.keys()):
-        raise RuntimeError(f"台本JSONの形式が不正です: {script.keys()}")
+def generate_script(articles: list[dict[str, Any]]) -> dict[str, Any]:
+    if SCRIPT_PROVIDER == "gemini":
+        raw_text = generate_script_with_gemini(articles)
+    else:
+        raw_text = _generate_with_cursor(articles)
 
+    script = parse_script_json(raw_text)
     script["generated_at"] = datetime.now(timezone.utc).isoformat()
     script["sources"] = [
         {"title": a["title"], "url": a["url"], "source": a["source"]} for a in articles
