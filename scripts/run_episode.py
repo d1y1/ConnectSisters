@@ -25,6 +25,7 @@ from lib.config import (  # noqa: E402
 from lib.fetch_news import fetch_news, save_news  # noqa: E402
 from lib.generate_script import generate_script, save_script  # noqa: E402
 from lib.synthesize_audio import synthesize_audio  # noqa: E402
+from sync_docs import sync_docs  # noqa: E402
 
 
 def _update_status(
@@ -102,11 +103,14 @@ def main() -> int:
             )
 
         elapsed = time.time() - start
+        sync_docs()
         print(f"\n✅ 完了！（所要時間: {elapsed:.1f} 秒）")
         print(f"   台本: {SCRIPT_MD_PATH}")
         if not args.skip_audio:
             print(f"   音声: {audio_path if not args.skip_audio else AUDIO_PATH}")
-        print(f"\n   ローカルプレビュー: python -m http.server 8080 --directory public")
+        print(f"   サイト用: docs/ にコピー済み")
+        print(f"\n   公開: git add docs/ && git push")
+        print(f"   ローカルプレビュー: python -m http.server 8080 --directory public")
 
         return 0
 

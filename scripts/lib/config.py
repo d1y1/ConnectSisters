@@ -10,6 +10,7 @@ from dotenv import load_dotenv
 ROOT_DIR = Path(__file__).resolve().parents[2]
 DATA_DIR = ROOT_DIR / "data"
 PUBLIC_DIR = ROOT_DIR / "public"
+DOCS_DIR = ROOT_DIR / "docs"
 OUTPUT_DIR = ROOT_DIR / "output"
 
 RSS_SOURCES_PATH = DATA_DIR / "rss_sources.json"

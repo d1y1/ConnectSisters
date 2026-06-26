@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ニュース・コネクト・シスターズ！</title>
+  <style>
+    :root {
+      --bg: #fdf6f0;
+      --surface: #ffffff;
+      --primary: #e85d75;
+      --primary-dark: #c94a60;
+      --text: #2d2a26;
+      --muted: #6b6560;
+      --border: #f0e4da;
+      --shadow: 0 4px 24px rgba(45, 42, 38, 0.08);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans JP", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.7;
+      min-height: 100vh;
+    }
+
+    .container {
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 2rem 1.25rem 4rem;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 2.5rem;
+    }
+
+    .logo {
+      font-size: 1.75rem;
+      font-weight: 800;
+      color: var(--primary);
+      letter-spacing: 0.02em;
+    }
+
+    .tagline {
+      color: var(--muted);
+      font-size: 0.9rem;
+      margin-top: 0.5rem;
+    }
+
+    .player-card {
+      background: var(--surface);
+      border-radius: 16px;
+      padding: 2rem;
+      box-shadow: var(--shadow);
+      border: 1px solid var(--border);
+      margin-bottom: 2rem;
+    }
+
+    .episode-title {
+      font-size: 1.25rem;
+      font-weight: 700;
+      margin-bottom: 0.25rem;
+    }
+
+    .episode-meta {
+      font-size: 0.85rem;
+      color: var(--muted);
+      margin-bottom: 1.5rem;
+    }
+
+    .status-badge {
+      display: inline-block;
+      font-size: 0.75rem;
+      font-weight: 600;
+      padding: 0.2rem 0.6rem;
+      border-radius: 999px;
+      margin-bottom: 1rem;
+    }
+
+    .status-ok { background: #e6f7ed; color: #1a7f42; }
+    .status-pending { background: #fff3e0; color: #e65100; }
+    .status-script_only { background: #e3f2fd; color: #1565c0; }
+    .status-failed { background: #fce4ec; color: #c62828; }
+
+    audio {
+      width: 100%;
+      margin-bottom: 0.5rem;
+    }
+
+    .no-audio {
+      background: var(--bg);
+      border: 2px dashed var(--border);
+      border-radius: 12px;
+      padding: 2rem;
+      text-align: center;
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+
+    .script-card {
+      background: var(--surface);
+      border-radius: 16px;
+      padding: 2rem;
+      box-shadow: var(--shadow);
+      border: 1px solid var(--border);
+    }
+
+    .script-card h2 {
+      font-size: 1.1rem;
+      margin-bottom: 1rem;
+      color: var(--primary-dark);
+    }
+
+    .script-content {
+      font-size: 0.95rem;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .script-content strong {
+      color: var(--primary-dark);
+    }
+
+    footer {
+      text-align: center;
+      margin-top: 3rem;
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+
+    footer a { color: var(--primary); }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1 class="logo">ニュース・コネクト・シスターズ！</h1>
+      <p class="tagline">姉妹がお届けする、参加型 AI ニュースラジオ</p>
+    </header>
+
+    <section class="player-card">
+      <div id="status-badge" class="status-badge status-pending">読み込み中…</div>
+      <h2 class="episode-title" id="episode-title">—</h2>
+      <p class="episode-meta" id="episode-meta"></p>
+      <div id="player-area">
+        <div class="no-audio">音声を読み込んでいます…</div>
+      </div>
+    </section>
+
+    <section class="script-card">
+      <h2>台本</h2>
+      <div class="script-content" id="script-content">台本を読み込んでいます…</div>
+    </section>
+
+    <footer>
+      <p>本サービスの音声・台本は AI により自動生成されています。</p>
+      <p>出典は各ニュースメディアに帰属します。</p>
+    </footer>
+  </div>
+
+  <script>
+    const STATUS_LABELS = {
+      ok: "配信中",
+      pending: "準備中",
+      script_only: "台本のみ",
+      failed: "生成失敗",
+      degraded: "一部制限",
+    };
+
+    async function loadText(path) {
+      const res = await fetch(path + "?t=" + Date.now());
+      if (!res.ok) throw new Error(`Failed to load ${path}`);
+      return res.text();
+    }
+
+    async function loadJson(path) {
+      const res = await fetch(path + "?t=" + Date.now());
+      if (!res.ok) throw new Error(`Failed to load ${path}`);
+      return res.json();
+    }
+
+    function formatDate(iso) {
+      if (!iso) return "";
+      const d = new Date(iso);
+      return d.toLocaleString("ja-JP", {
+        year: "numeric", month: "long", day: "numeric",
+        hour: "2-digit", minute: "2-digit",
+      });
+    }
+
+    function formatDuration(sec) {
+      if (!sec) return "";
+      const m = Math.floor(sec / 60);
+      const s = sec % 60;
+      return `${m}分${s}秒`;
+    }
+
+    function renderMarkdown(md) {
+      return md
+        .replace(/^# (.+)$/gm, "<strong>$1</strong>\n")
+        .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+        .replace(/\[(.+?)\]\((.+?)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>')
+        .replace(/^---$/gm, "<hr>")
+        .replace(/^\*(.+?)\*$/gm, "<em>$1</em>");
+    }
+
+    async function init() {
+      try {
+        const status = await loadJson("status.json");
+        const badge = document.getElementById("status-badge");
+        badge.textContent = STATUS_LABELS[status.status] || status.status;
+        badge.className = "status-badge status-" + (status.status || "pending");
+
+        document.getElementById("episode-title").textContent = status.title || "—";
+
+        const metaParts = [];
+        if (status.published_at) metaParts.push(formatDate(status.published_at));
+        if (status.duration_sec) metaParts.push(formatDuration(status.duration_sec));
+        document.getElementById("episode-meta").textContent = metaParts.join(" ・ ");
+
+        const playerArea = document.getElementById("player-area");
+        if (status.status === "ok") {
+          const audioFile = status.audio_file || "latest.mp3";
+          playerArea.innerHTML = '<audio controls src="' + audioFile + '?t=' + Date.now() + '"></audio>';
+        } else if (status.status === "script_only") {
+          playerArea.innerHTML = '<div class="no-audio">台本は生成済みです。音声はまだありません。<br>VOICEVOX で合成後に latest.mp3 を配置してください。</div>';
+        } else if (status.status === "failed") {
+          playerArea.innerHTML = '<div class="no-audio">前回の生成に失敗しました。' + (status.error ? "<br><small>" + status.error + "</small>" : "") + '</div>';
+        } else {
+          playerArea.innerHTML = '<div class="no-audio">まだエピソードがありません。<br>最初のエピソードを生成してください。</div>';
+        }
+
+        const scriptMd = await loadText("script.md");
+        document.getElementById("script-content").innerHTML = renderMarkdown(scriptMd);
+      } catch (err) {
+        console.error(err);
+        document.getElementById("script-content").textContent = "コンテンツの読み込みに失敗しました。";
+      }
+    }
+
+    init();
+  </script>
+</body>
+</html>

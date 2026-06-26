@@ -79,46 +79,46 @@ output/           # 中間生成物（gitignore）
 
 ## デプロイ（GitHub Pages）
 
-### 初回セットアップ
+### 方法 A: ブランチ公開（おすすめ・Actions 不要）
 
-1. このリポジトリを GitHub に push する
-2. リポジトリの **Settings → Pages → Build and deployment**
-   - **Source**: `GitHub Actions` を選択
-3. **Settings → Actions → General → Workflow permissions**
-   - **Read and write permissions** を選択して Save
-4. **Settings → Secrets and variables → Actions** に以下を登録:
-   - `GEMINI_API_KEY` … 台本自動生成用（[Google AI Studio](https://aistudio.google.com/apikey)）
-   - `CURSOR_API_KEY` … ローカル用（Actions では不要）
+GitHub Actions が billing エラーで動かない場合でも、この方法で公開できます。
 
-### 公開 URL
+**初回セットアップ（GitHub 上で1回だけ）**
 
-push 後、Actions の **Deploy GitHub Pages** が完了すると公開されます。
+1. **Settings → Pages → Build and deployment**
+2. **Source**: `Deploy from a branch` を選択
+3. **Branch**: `main`、**Folder**: `/docs`
 
-```
-https://<ユーザー名>.github.io/ConnectSisters/
-```
+**更新手順（毎回）**
 
-例: `https://d1y1.github.io/ConnectSisters/`
-
-### 運用フロー（Phase 1）
-
-```
-1. GitHub Actions「Generate Episode Script」を手動実行 → 台本がコミットされる
-2. ローカルで python scripts/synthesize_audio.py → 音声を生成
-3. public/latest.wav（または latest.mp3）をコミット & push
-4. Deploy GitHub Pages が自動実行 → サイトに反映
+```bash
+python scripts/run_episode.py          # 生成後、自動で docs/ にコピーされる
+git add docs/
+git commit -m "chore: update site"
+git -c http.postBuffer=524288000 push origin main
 ```
 
-`public/` 以下が変わると push のたびに自動デプロイされます。
+手動コピー: `python scripts/sync_docs.py`
+
+**公開 URL**: https://d1y1.github.io/ConnectSisters/
+
+---
+
+### 方法 B: GitHub Actions（billing 解消後）
+
+Actions が使えるようになったらこちらに切り替え可能です。
+
+1. **Settings → Pages → Source**: `GitHub Actions`
+2. **Settings → Actions → Workflow permissions**: Read and write
+3. Secrets に `GEMINI_API_KEY` を登録
 
 ### トラブルシューティング
 
 | 症状 | 対処 |
 |------|------|
-| Deploy GitHub Pages が失敗 | Settings → Actions → Workflow permissions を **Read and write** にする |
-| Generate Episode Script が失敗 | `GEMINI_API_KEY` が Secrets に登録されているか確認 |
-| サイトが 404 | Deploy ワークフローが成功するまで 2〜3 分待つ |
-| push が HTTP 400 で失敗 | `git -c http.postBuffer=524288000 push origin main` を試す |
+| `account is locked due to a billing issue` | カード認証完了まで待つ（**Payment method verification in progress**）。その間は **方法 A** を使う |
+| push が HTTP 400 で失敗 | `git -c http.postBuffer=524288000 push origin main` |
+| サイトが 404 | Pages 設定が `/docs` か確認。反映まで 2〜3 分待つ |
 
 ### MP3 推奨
 
