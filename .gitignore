@@ -1,0 +1,22 @@
+# 環境変数
+.env
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# 生成物（public/ 以外）
+output/
+
+# 音声ファイル（ローカル生成後にコミットする場合はこの行を削除）
+# public/latest.mp3
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
