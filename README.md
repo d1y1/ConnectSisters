@@ -134,6 +134,50 @@ python scripts/run_episode.py
 
 WAV（約7MB）→ MP3（約2MB）に圧縮されます。
 
+## 朝のルーティン（Phase 2）
+
+平日朝に自動で「生成 → 公開」する設定です。GitHub Actions は使いません。
+
+### 手動で1回実行（テスト）
+
+```bash
+bash scripts/morning_routine.sh
+```
+
+処理内容:
+1. VOICEVOX を起動（未起動の場合）
+2. `python scripts/run_episode.py`（ニュース → 台本 → 音声 → docs/ 同期）
+3. `git commit` & `push`（`AUTO_PUSH=true` のとき）
+
+ログ: `output/logs/morning-*.log`
+
+### 平日 7:00 に自動実行（macOS）
+
+```bash
+bash scripts/install_launchd.sh
+```
+
+解除する場合:
+
+```bash
+bash scripts/uninstall_launchd.sh
+```
+
+### .env の設定
+
+| 変数 | デフォルト | 説明 |
+|------|-----------|------|
+| `AUTO_PUSH` | `true` | 生成後に自動 push |
+| `SKIP_WEEKEND` | `true` | 土日はスキップ |
+
+push だけ試したくないとき: `AUTO_PUSH=false bash scripts/morning_routine.sh`
+
+### 注意
+
+- **Mac が起動・ログイン済み**である必要があります（スリープ中は実行されません）
+- git push には SSH キーまたは credential の設定が必要です
+- 時刻を変える場合は `launchd/com.connectsisters.morning.plist.template` の `Hour` / `Minute` を編集して再インストール
+
 ## ライセンス
 
 仕様・実装は個人プロジェクトです。ニュースの著作権は各メディアに帰属します。
