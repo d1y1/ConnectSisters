@@ -120,14 +120,19 @@ Actions が使えるようになったらこちらに切り替え可能です。
 | push が HTTP 400 で失敗 | `git -c http.postBuffer=524288000 push origin main` |
 | サイトが 404 | Pages 設定が `/docs` か確認。反映まで 2〜3 分待つ |
 
-### MP3 推奨
-
-GitHub リポジトリの容量を抑えるため、ffmpeg で MP3 に変換してからコミットすることを推奨します。
+### MP3 化（push を軽くする）
 
 ```bash
-brew install ffmpeg
-python scripts/synthesize_audio.py   # MP3 が生成されれば latest.mp3 をコミット
+brew install ffmpeg   # 初回のみ
+
+# 既存の WAV を MP3 に変換
+python scripts/convert_to_mp3.py
+
+# 以降、音声合成時に自動で MP3 になる
+python scripts/run_episode.py
 ```
+
+WAV（約7MB）→ MP3（約2MB）に圧縮されます。
 
 ## ライセンス
 

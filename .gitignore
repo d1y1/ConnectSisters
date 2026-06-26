@@ -10,8 +10,9 @@ venv/
 # 生成物（public/ 以外）
 output/
 
-# 音声ファイル（ローカル生成後にコミットする場合はこの行を削除）
-# public/latest.mp3
+# 音声（MP3 のみコミット。WAV はローカル一時ファイル）
+public/latest.wav
+docs/latest.wav
 
 # OS
 .DS_Store
